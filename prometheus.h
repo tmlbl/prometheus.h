@@ -207,6 +207,22 @@ int prom_flush(prom_metric_set *s)
   fclose(f);
 }
 
+int prom_cleanup(prom_metric_set *s)
+{
+  for (int i = 0; i < s->n_defs; i++)
+  {
+    prom_metric_def_set *ds = s->defs[i];
+
+    // Free each metric pointer
+    for (int j = 0; j < ds->n_metrics; j++)
+    {
+      free(ds->metrics[j]);
+    }
+    // Free the def set
+    free(ds);
+  }
+}
+
 void prom_http_write_header(int sock)
 {
   char *resp = "HTTP/1.1 200 OK\n";
