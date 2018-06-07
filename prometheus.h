@@ -57,12 +57,14 @@ typedef struct prom_metric_def_set
 // Container for a set of references to prom_metrics
 typedef struct prom_metric_set
 {
+  char *fname;
   int n_defs;
   prom_metric_def_set *defs[PROM_MAX_METRICS];
 } prom_metric_set;
 
 void prom_init(prom_metric_set *s)
 {
+  s->fname = "/tmp/prom_c";
   s->n_defs = 0;
 }
 
@@ -194,6 +196,17 @@ void prom_metric_write(prom_metric_def_set *s, int f)
   }
 }
 
+// Writes metrics out to the temp file
+int prom_flush(prom_metric_set *s)
+{
+  FILE *f = fopen(s->fname, "w");
+  for (int i = 0; i < s->n_defs; i++)
+  {
+    prom_metric_write(s->defs[i], fileno(f));
+  }
+  fclose(f);
+}
+
 void prom_http_write_header(int sock)
 {
   char *resp = "HTTP/1.1 200 OK\n";
@@ -219,60 +232,43 @@ int prom_start_server(prom_metric_set *s)
     return -1;
   }
 
-  // Once we have a list of potential interfaces, loop through them
-  // and try to set up a socket on each. Quit looping the first time
-  // we have success.
   for(p = servinfo; p != NULL; p = p->ai_next) {
 
-    // Try to make a socket based on this candidate interface
     if ((sockfd = socket(p->ai_family, p->ai_socktype,
         p->ai_protocol)) == -1) {
-      //perror("server: socket");
       continue;
     }
 
-    // SO_REUSEADDR prevents the "address already in use" errors
-    // that commonly come up when testing servers.
     if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &yes,
         sizeof(int)) == -1) {
       perror("setsockopt");
       close(sockfd);
-      freeaddrinfo(servinfo); // all done with this structure
+      freeaddrinfo(servinfo);
       return -2;
     }
 
-    // See if we can bind this socket to this local IP address. This
-    // associates the file descriptor (the socket descriptor) that
-    // we will read and write on with a specific IP address.
     if (bind(sockfd, p->ai_addr, p->ai_addrlen) == -1) {
       close(sockfd);
-      //perror("server: bind");
       continue;
     }
 
-    // If we got here, we got a bound socket and we're done
     break;
   }
 
-  freeaddrinfo(servinfo); // all done with this structure
+  freeaddrinfo(servinfo);
 
-  // If p is NULL, it means we didn't break out of the loop, above,
-  // and we don't have a good socket.
   if (p == NULL)  {
     fprintf(stderr, "webserver: failed to find local address\n");
     return -3;
   }
 
-  // Start listening. This is what allows remote computers to connect
-  // to this socket/IP.
   if (listen(sockfd, PROM_CONN_BACKLOG) == -1) {
-    //perror("listen");
     close(sockfd);
     return -4;
   }
 
-  int newfd;  // listen on sock_fd, new connection on newfd
-  struct sockaddr_storage their_addr; // connector's address information
+  int newfd;
+  struct sockaddr_storage their_addr;
 
   // Start serving
   while (1)
@@ -289,10 +285,18 @@ int prom_start_server(prom_metric_set *s)
     prom_http_write_header(newfd);
     // Separator for HTTP body
     write(newfd, "\n", 1);
-    for (int i = 0; i < s->n_defs; i++)
+    FILE *f = fopen(s->fname, "r");
+    if (f == NULL)
+      printf("Couldn't open file\n");
+    char write_buf[1024];
+    while (1)
     {
-      prom_metric_write(s->defs[i], newfd);
+      size_t nread = fread(write_buf, sizeof(*write_buf), 1024, f);
+      if (!nread)
+        break;
+      write(newfd, write_buf, nread);
     }
+    fclose(f);
     shutdown(newfd, 1);
     close(newfd);
   }
