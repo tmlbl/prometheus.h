@@ -16,23 +16,23 @@ int main()
   prom_init(&metrics);
 
   // Metric definitions contain the name, help, and type
-  prom_metric_def example_gauge = {"example_gauge", 
-      "An example of a gauge metric", PROM_METRIC_TYPE_GAUGE};
+  prom_metric_def current_time = {"current_time",
+      "The time that it is right now", PROM_METRIC_TYPE_COUNTER};
 
   // Register your metric definition to the set
-  prom_register(&metrics, &example_gauge);
+  prom_register(&metrics, &current_time);
 
   // You can obtain a metric instance by passing any number of labels
-  prom_label device_label = {"device", "/dev/sda"};
-  prom_metric *device_gauge_metric = prom_get(&metrics, &example_gauge, 1,
-      device_label);
+  prom_label foo_label = {"foo", "bar"};
+  prom_metric *cur_time_metric = prom_get(&metrics, &current_time, 1,
+      foo_label);
 
   // Create a fork process to run the HTTP server
   int pid = fork();
   if (pid == 0) {
     while (1) {
       // In the main thread, we can update the metric values periodically
-      device_gauge_metric->value = time(NULL);
+      cur_time_metric->value = time(NULL);
       // prom_flush must be called to update the current metric values
       prom_flush(&metrics);
       sleep(3);
@@ -41,4 +41,3 @@ int main()
     prom_start_server(&metrics, 5950);
   }
 }
-
