@@ -27,26 +27,27 @@ static const char PROM_METRIC_TYPE_SUMMARY[]   = "summary";
 // Generic definition for a metric including name, help and type
 typedef struct prom_metric_def
 {
-	char *name;
-	char *help;
-	const char *type;
+  char *name;
+  char *help;
+  const char *type;
 } prom_metric_def;
 
 // Key-value pair representing a label name with an assigned value
 typedef struct prom_label
 {
-	char *key;
-	char *value;
+  char *key;
+  char *value;
 } prom_label;
 
 // Represents an instance of a metric with a given value and set of labels
 typedef struct prom_metric
 {
-	int num_labels;
-	struct prom_label labels[PROM_MAX_LABELS];
-	double value;
+  int num_labels;
+  struct prom_label labels[PROM_MAX_LABELS];
+  double value;
 } prom_metric;
 
+// A container for metrics that share a common definition
 typedef struct prom_metric_def_set
 {
   prom_metric_def *def;
@@ -66,6 +67,8 @@ void prom_init(prom_metric_set *s)
 {
   s->fname = "/tmp/prom_c";
   s->n_defs = 0;
+  memset(&s->defs, 0,
+      sizeof(prom_metric_def_set *) * PROM_MAX_METRICS); 
 }
 
 void prom_register(prom_metric_set *s, prom_metric_def *d)
@@ -92,20 +95,20 @@ void prom_register(prom_metric_set *s, prom_metric_def *d)
 // Initializes a prom_metric with a zero value and empty label set
 void prom_metric_init(prom_metric *m)
 {
-	m->num_labels = 0;
-	memset(&m->labels, 0, sizeof(prom_label) * PROM_MAX_LABELS);
-	m->value = 0;
+  m->num_labels = 0;
+  memset(&m->labels, 0, sizeof(prom_label) * PROM_MAX_LABELS);
+  m->value = 0;
 }
 
 // Sets a label key and value on the given metric value
 void prom_metric_set_label(prom_metric *m, char *key, char *value)
 {
-	m->labels[m->num_labels].key = key;
-	m->labels[m->num_labels].value = value;
-	m->num_labels++;
+  m->labels[m->num_labels].key = key;
+  m->labels[m->num_labels].value = value;
+  m->num_labels++;
 }
 
-prom_metric *prom_get_or_create(prom_metric_set *s, prom_metric_def *d, int n, ...)
+prom_metric *prom_get(prom_metric_set *s, prom_metric_def *d, int n, ...)
 {
   va_list args;
   va_start(args, n);
@@ -156,7 +159,8 @@ prom_metric *prom_get_or_create(prom_metric_set *s, prom_metric_def *d, int n, .
     ds->n_metrics++;
     for (int i = 0; i < n; i++)
     {
-      prom_metric_set_label(ds->metrics[ds->n_metrics-1], ulabels[i].key, ulabels[i].value);
+      prom_metric_set_label(ds->metrics[ds->n_metrics-1],
+		      ulabels[i].key, ulabels[i].value);
     }
     return ds->metrics[ds->n_metrics-1];
   }
@@ -319,3 +323,4 @@ int prom_start_server(prom_metric_set *s)
 }
 
 #endif // PROMETHEUS_H
+
