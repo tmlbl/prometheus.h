@@ -75,15 +75,12 @@ void prom_register(prom_metric_set *s, prom_metric_def *d)
 {
   // Check if we already have this definition
   int existing = -1;
-  for (int i = 0; i < s->n_defs; i++)
-  {
-    if (s->defs[i]->def == d)
-    {
+  for (int i = 0; i < s->n_defs; i++) {
+    if (s->defs[i]->def == d) {
       existing = i;
     }
   }
-  if (existing == -1)
-  {
+  if (existing == -1) {
     // It doesn't exist, create it
     existing = s->n_defs;
     s->n_defs++;
@@ -113,8 +110,7 @@ prom_metric *prom_get(prom_metric_set *s, prom_metric_def *d, int n, ...)
   va_list args;
   va_start(args, n);
   prom_label ulabels[PROM_MAX_LABELS];
-  for (int i = 0; i < n; i++)
-  {
+  for (int i = 0; i < n; i++) {
     ulabels[i] = va_arg(args, prom_label);
   }
   va_end(args);
@@ -123,27 +119,22 @@ prom_metric *prom_get(prom_metric_set *s, prom_metric_def *d, int n, ...)
   prom_metric *m_found;
   prom_metric_def_set *ds;
 
-  for (int i = 0; i < s->n_defs; i++)
-  {
-    if (s->defs[i]->def == d)
-    {
+  for (int i = 0; i < s->n_defs; i++) {
+    if (s->defs[i]->def == d) {
       ds = s->defs[i];
-      for (int j = 0; j < ds->n_metrics; j++)
-      {
+      for (int j = 0; j < ds->n_metrics; j++) {
         // Compare labels
         int labels_match = 1;
         prom_metric *m = ds->metrics[j];
         if (m->num_labels != n)
           continue;
-        for (int l = 0; l < m->num_labels; l++)
-        {
+        for (int l = 0; l < m->num_labels; l++) {
           prom_label mlab = m->labels[l];
           prom_label ulab = ulabels[l];
           if (strcmp(mlab.key, ulab.key) || strcmp(mlab.value, ulab.value))
             labels_match = 0;
         }
-        if (labels_match == 1)
-        {
+        if (labels_match == 1) {
           found = 1;
           break;
         }
@@ -153,12 +144,10 @@ prom_metric *prom_get(prom_metric_set *s, prom_metric_def *d, int n, ...)
   }
 
   // Create if not found
-  if (found == 0)
-  {
+  if (found == 0) {
     ds->metrics[ds->n_metrics] = malloc(sizeof(prom_metric));
     ds->n_metrics++;
-    for (int i = 0; i < n; i++)
-    {
+    for (int i = 0; i < n; i++) {
       prom_metric_set_label(ds->metrics[ds->n_metrics-1],
 		      ulabels[i].key, ulabels[i].value);
     }
@@ -171,10 +160,8 @@ void _prom_escape(char *buf, char *str)
   int pos = 0;
   int len = strlen(str);
 
-  for (int i = 0; i < len; i++)
-  {
-    switch (str[i])
-    {
+  for (int i = 0; i < len; i++) {
+    switch (str[i]) {
     case '\n':
       buf[pos] = '\\';
       pos++;
@@ -212,23 +199,19 @@ void prom_metric_write(prom_metric_def_set *s, int f)
   write(f, buf, strlen(buf));
 
   // Write the metric values
-  for (int i = 0; i < s->n_metrics; i++)
-  {
+  for (int i = 0; i < s->n_metrics; i++) {
     prom_metric *m = s->metrics[i];
     write(f, s->def->name, strlen(s->def->name));
-    if (m->num_labels > 0)
-    {
+    if (m->num_labels > 0) {
       write(f, "{", 1);
-      for (int i = 0; i < m->num_labels; i++)
-      {
+      for (int i = 0; i < m->num_labels; i++) {
         _prom_escape(buf, m->labels[i].key);
         write(f, buf, strlen(buf));
         write(f, "=\"", 2);
         _prom_escape(buf, m->labels[i].value);
         write(f, buf, strlen(buf));
         write(f, "\"", 1);
-        if (i < (m->num_labels - 1))
-        {
+        if (i < (m->num_labels - 1)) {
           write(f, ",", 1);
         }
       }
@@ -243,8 +226,7 @@ void prom_metric_write(prom_metric_def_set *s, int f)
 int prom_flush(prom_metric_set *s)
 {
   FILE *f = fopen(s->fname, "w");
-  for (int i = 0; i < s->n_defs; i++)
-  {
+  for (int i = 0; i < s->n_defs; i++) {
     prom_metric_write(s->defs[i], fileno(f));
   }
   fclose(f);
@@ -252,13 +234,11 @@ int prom_flush(prom_metric_set *s)
 
 int prom_cleanup(prom_metric_set *s)
 {
-  for (int i = 0; i < s->n_defs; i++)
-  {
+  for (int i = 0; i < s->n_defs; i++) {
     prom_metric_def_set *ds = s->defs[i];
 
     // Free each metric pointer
-    for (int j = 0; j < ds->n_metrics; j++)
-    {
+    for (int j = 0; j < ds->n_metrics; j++) {
       free(ds->metrics[j]);
     }
     // Free the def set
@@ -289,13 +269,12 @@ int prom_start_server(prom_metric_set *s, int port)
   printf("Listening on %d...\n", port);
 
   gai_ret = getaddrinfo(NULL, port_str, &hints, &servinfo);
-  if (gai_ret != 0)
-  {
+  if (gai_ret != 0) {
     fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(gai_ret));
     return -1;
   }
 
-  for(p = servinfo; p != NULL; p = p->ai_next) {
+  for (p = servinfo; p != NULL; p = p->ai_next) {
 
     if ((sockfd = socket(p->ai_family, p->ai_socktype,
         p->ai_protocol)) == -1) {
@@ -334,8 +313,7 @@ int prom_start_server(prom_metric_set *s, int port)
   struct sockaddr_storage their_addr;
 
   // Start serving
-  while (1)
-  {
+  while (1) {
     socklen_t sin_size = sizeof their_addr;
     newfd = accept(sockfd, (struct sockaddr *)&their_addr, &sin_size);
 
@@ -352,8 +330,7 @@ int prom_start_server(prom_metric_set *s, int port)
     if (f == NULL)
       printf("Couldn't open file\n");
     char write_buf[1024];
-    while (1)
-    {
+    while (1) {
       size_t nread = fread(write_buf, sizeof(*write_buf), 1024, f);
       if (!nread)
         break;
@@ -366,4 +343,3 @@ int prom_start_server(prom_metric_set *s, int port)
 }
 
 #endif // PROMETHEUS_H
-
