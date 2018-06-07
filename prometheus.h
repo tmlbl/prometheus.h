@@ -166,6 +166,41 @@ prom_metric *prom_get(prom_metric_set *s, prom_metric_def *d, int n, ...)
   }
 }
 
+void _prom_escape(char *buf, char *str)
+{
+  int pos = 0;
+  int len = strlen(str);
+
+  for (int i = 0; i < len; i++)
+  {
+    switch (str[i])
+    {
+    case '\n':
+      buf[pos] = '\\';
+      pos++;
+      buf[pos] = 'n';
+      pos++;
+      break;
+    case '\\':
+      buf[pos] = '\\';
+      pos++;
+      buf[pos] = '\\';
+      pos++;
+      break;
+    case '"':
+      buf[pos] = '\\';
+      pos++;
+      buf[pos] = '"';
+      pos++;
+      break;
+    default:
+      buf[pos] = str[i];
+      pos++;
+    }
+  }
+  buf[pos] = '\0';
+}
+
 // Prints the metric value to the given IO
 void prom_metric_write(prom_metric_def_set *s, int f)
 {
@@ -186,8 +221,12 @@ void prom_metric_write(prom_metric_def_set *s, int f)
       write(f, "{", 1);
       for (int i = 0; i < m->num_labels; i++)
       {
-        sprintf(buf, "%s=\"%s\"", m->labels[i].key, m->labels[i].value);
+        _prom_escape(buf, m->labels[i].key);
         write(f, buf, strlen(buf));
+        write(f, "=\"", 2);
+        _prom_escape(buf, m->labels[i].value);
+        write(f, buf, strlen(buf));
+        write(f, "\"", 1);
         if (i < (m->num_labels - 1))
         {
           write(f, ",", 1);
