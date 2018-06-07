@@ -25,39 +25,34 @@ static const char PROM_METRIC_TYPE_SUMMARY[]   = "summary";
 #define PROM_CONN_BACKLOG 10
 
 // Generic definition for a metric including name, help and type
-typedef struct prom_metric_def
-{
+typedef struct prom_metric_def {
   char *name;
   char *help;
   const char *type;
 } prom_metric_def;
 
 // Key-value pair representing a label name with an assigned value
-typedef struct prom_label
-{
+typedef struct prom_label {
   char *key;
   char *value;
 } prom_label;
 
 // Represents an instance of a metric with a given value and set of labels
-typedef struct prom_metric
-{
+typedef struct prom_metric {
   int num_labels;
   struct prom_label labels[PROM_MAX_LABELS];
   double value;
 } prom_metric;
 
 // A container for metrics that share a common definition
-typedef struct prom_metric_def_set
-{
+typedef struct prom_metric_def_set {
   prom_metric_def *def;
   int n_metrics;
   prom_metric *metrics[PROM_MAX_METRICS];
 } prom_metric_def_set;
 
 // Container for a set of references to prom_metrics
-typedef struct prom_metric_set
-{
+typedef struct prom_metric_set {
   char *fname;
   int n_defs;
   prom_metric_def_set *defs[PROM_MAX_METRICS];
@@ -68,7 +63,7 @@ void prom_init(prom_metric_set *s)
   s->fname = "/tmp/prom_c";
   s->n_defs = 0;
   memset(&s->defs, 0,
-      sizeof(prom_metric_def_set *) * PROM_MAX_METRICS); 
+      sizeof(prom_metric_def_set *) * PROM_MAX_METRICS);
 }
 
 void prom_register(prom_metric_set *s, prom_metric_def *d)
@@ -85,6 +80,7 @@ void prom_register(prom_metric_set *s, prom_metric_def *d)
     existing = s->n_defs;
     s->n_defs++;
     s->defs[existing] = malloc(sizeof(prom_metric_def_set));
+    memset(s->defs[existing], 0, sizeof(prom_metric_def_set));
     s->defs[existing]->def = d;
   }
 }
@@ -135,6 +131,7 @@ prom_metric *prom_get(prom_metric_set *s, prom_metric_def *d, int n, ...)
             labels_match = 0;
         }
         if (labels_match == 1) {
+          m_found = m;
           found = 1;
           break;
         }
@@ -146,12 +143,16 @@ prom_metric *prom_get(prom_metric_set *s, prom_metric_def *d, int n, ...)
   // Create if not found
   if (found == 0) {
     ds->metrics[ds->n_metrics] = malloc(sizeof(prom_metric));
+    prom_metric_init(ds->metrics[ds->n_metrics]);
     ds->n_metrics++;
+
     for (int i = 0; i < n; i++) {
       prom_metric_set_label(ds->metrics[ds->n_metrics-1],
 		      ulabels[i].key, ulabels[i].value);
     }
     return ds->metrics[ds->n_metrics-1];
+  } else {
+    return m_found;
   }
 }
 

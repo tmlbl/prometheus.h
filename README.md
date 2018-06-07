@@ -58,12 +58,8 @@ set.
 prom_cleanup(&metrics);
 ```
 
-View the example program in this repository for more examples. You can build
-it with the following command:
-
-```bash
-gcc -o stat -I. example/stat.c
-```
+There are some more practical examples in the `examples` directory.
 
 TODO:
+* Option to include time in a metric reading
 * Handle complex types like summary and histogram
