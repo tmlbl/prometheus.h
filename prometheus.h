@@ -272,7 +272,7 @@ void prom_http_write_header(int sock)
   write(sock, resp, strlen(resp));
 }
 
-int prom_start_server(prom_metric_set *s)
+int prom_start_server(prom_metric_set *s, int port)
 {
   int sockfd;
   int yes=1;
@@ -284,7 +284,11 @@ int prom_start_server(prom_metric_set *s)
   hints.ai_socktype = SOCK_STREAM;
   hints.ai_flags = AI_PASSIVE;
 
-  gai_ret = getaddrinfo(NULL, "5950", &hints, &servinfo);
+  char port_str[10];
+  sprintf(port_str, "%d", port);
+  printf("Listening on %d...\n", port);
+
+  gai_ret = getaddrinfo(NULL, port_str, &hints, &servinfo);
   if (gai_ret != 0)
   {
     fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(gai_ret));

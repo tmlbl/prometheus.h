@@ -38,7 +38,7 @@ int main()
       sleep(3);
     }
   } else {
-    prom_start_server(&metrics);
+    prom_start_server(&metrics, 5950);
   }
 }
 
