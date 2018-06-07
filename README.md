@@ -32,7 +32,7 @@ order.
 prom_label foo = {"foo", "bar"};
 prom_label bing = {"bing", "bong"};
 
-prom_metric m = prom_get(&metrics, &current_time, 2, foo, bing);
+prom_metric *m = prom_get(&metrics, &current_time, 2, foo, bing);
 ```
 
 You can start the server in a forked process. Then, you can manipulate the
