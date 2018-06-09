@@ -60,10 +60,9 @@ typedef struct prom_metric_set {
 
 void prom_init(prom_metric_set *s)
 {
+  memset(s, 0, sizeof(prom_metric_set));
   s->fname = "/tmp/prom_c";
-  s->n_defs = 0;
-  memset(&s->defs, 0,
-      sizeof(prom_metric_def_set *) * PROM_MAX_METRICS);
+  fclose(fopen(s->fname, "w+"));
 }
 
 void prom_register(prom_metric_set *s, prom_metric_def *d)
@@ -245,6 +244,7 @@ int prom_cleanup(prom_metric_set *s)
     // Free the def set
     free(ds);
   }
+  free(s);
 }
 
 void prom_http_write_header(int sock)
