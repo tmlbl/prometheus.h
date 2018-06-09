@@ -22,6 +22,10 @@ static const char PROM_METRIC_TYPE_SUMMARY[]   = "summary";
 #define PROM_MAX_METRICS 256
 #endif
 
+#ifndef PROM_BUF_SIZE
+#define PROM_BUF_SIZE 1024
+#endif
+
 #define PROM_CONN_BACKLOG 10
 
 // Generic definition for a metric including name, help and type
@@ -191,7 +195,7 @@ void _prom_escape(char *buf, char *str)
 // Prints the metric value to the given IO
 void prom_metric_write(prom_metric_def_set *s, int f)
 {
-  char buf[1024];
+  char buf[PROM_BUF_SIZE];
   // Write the header comments
   sprintf(buf, "# TYPE %s %s\n", s->def->name, s->def->type);
   write(f, buf, strlen(buf));
@@ -319,7 +323,7 @@ int prom_start_server(prom_metric_set *s, int port)
     newfd = accept(sockfd, (struct sockaddr *)&their_addr, &sin_size);
 
     int status;
-    char readBuffer[1024];
+    char readBuffer[PROM_BUF_SIZE];
     do {
       status = recv(newfd, readBuffer, sizeof readBuffer, MSG_DONTWAIT);
     } while (status > 0);
@@ -330,9 +334,9 @@ int prom_start_server(prom_metric_set *s, int port)
     FILE *f = fopen(s->fname, "r");
     if (f == NULL)
       printf("Couldn't open file\n");
-    char write_buf[1024];
+    char write_buf[PROM_BUF_SIZE];
     while (1) {
-      size_t nread = fread(write_buf, sizeof(*write_buf), 1024, f);
+      size_t nread = fread(write_buf, sizeof(*write_buf), PROM_BUF_SIZE, f);
       if (!nread)
         break;
       write(newfd, write_buf, nread);
